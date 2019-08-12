@@ -32,43 +32,32 @@ restricted, by adding a directive like the following to your web server configur
     <Location "/auth/login/RemoteUser:self/">
       AuthType Kerberos
       AuthName "Phabricator at My Server"
-	  KrbAuthRealms DOMAIN.EXAMPLE.COM
-	  KrbServiceName HTTP
-	  Krb5Keytab /etc/apache2/kerberos.keytab
-	  KrbMethodNegotiate On
-	  KrbMethodK5Passwd On
-	  KrbLocalUserMapping On
-	  
-	  # The following two lines can be used when authenticating against
-	  # Microsoft ActiveDirectory to pull extra info from LDAP, and
-	  # limit access to a certain group.  It may also be useful in
-	  # other cases.
-	  # Require ldap-dn can probably be used to allow all users in
-	  # a domain if you don't wish to limit access to a group, or
-	  # multiple Require ldap-group lines can be used to expand the list.
-	  # Require valid-user will bypass the LDAP authorization step,
-	  # defeating the additional info on the first line
-	  AuthLDAPUrl ldap://adserver.domain.example.com/dc=domain,dc=example,dc=com?uid,cn,mail
-      Require ldap-group DEVELOPERS_GROUP
-	  
-      Options None
-      Order allow,deny
-      Allow from all
+      KrbAuthRealms DOMAIN.EXAMPLE.COM
+      KrbServiceName HTTP
+      Krb5Keytab /etc/apache2/kerberos.keytab
+      KrbMethodNegotiate On
+      KrbMethodK5Passwd On
+      KrbLocalUserMapping On
+      Require valid-user
+    </Location>
+
+    <Location "/auth/login/RemoteUser:self/">
+      AuthType GSSAPI
+      AuthName "Phabricator at My Server"
+      GssapiCredStore keytab:/etc/apache2/kerberos.keytab
+      GssapiCredStore ccache:MEMORY:user_ccache
+      GssapiAllowedMech krb5
+      GssapiUseSessions On
+      GssapiNegotiateOnce On
+      Session On
+      SessionCookieName gssapi_session path=/gssapi-test;httponly;secure;
+      Require valid-user
     </Location>
 
 
 When a user registers using this auth provider, it will attempt to discover
-the user's full name and email from `AUTHORIZE_CN` and `AUTHORIZE_MAIL` variables
-in the server environment, as well as getting the username from `REMOTE_USER`.
-These variables are available if you configure LDAP authorization with those
-attributes appended to the `AuthLDAPUrl` directive, as explained in the
-[mod_authnz_ldap](http://httpd.apache.org/docs/current/mod/mod_authnz_ldap.html#exposed)
-[documentation](http://httpd.apache.org/docs/current/mod/mod_authnz_ldap.html#authldapurl).
-
-If you use LDAP for authentication rather than kerberos, the
-environment variables will start with `AUTHENTICATE_` instead of `AUTHORIZE_`, but you are probably better off using
-Phabricator's native LDAP auth provider in that case.
-
+the user's full name and email from LDAP. LDAP parameters are stored in INI file.
+You must edit this file named ldap_params.ini before use.
 
 Security
 --------
